@@ -1,10 +1,14 @@
 from collections import defaultdict
 from urllib.request import urlopen
 import statistics
+
+import collections
 from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
+import openpyxl
+from openpyxl.chart import BarChart
 
-CARS = 'https://www.otomoto.pl/osobowe/?page='
+CARS = 'https://www.otomoto.pl/osobowe/skoda/octavia/?page='
 
 
 def add_dictionaries(dict1, dict2):
@@ -66,7 +70,7 @@ def get_number(string):
 
 def get_car_data():
     list_of_pages = []
-    for page_number in range(2, 250):
+    for page_number in range(2, 50):
         print(page_number)
         list_of_pages.append(get_mileages_and_years(CARS + str(page_number)))
 
@@ -93,14 +97,49 @@ def dict_with_median_of_values(dictionary):
 
     return result
 
-DATA = get_car_data()
-#
-# file = open('filename.obj', 'w')
-# pickle.dump(data, file)
 
-plt.rcParams.update({'font.size': 7})
-plt.bar(DATA.keys(), dict_with_median_of_values(DATA).values(), color='g')
-#
-# plt.plot([1,2,3,4], [1,4,9,16], 'ro')
-# plt.axis([0, 6, 0, 20])
-plt.show()
+def dict_with_median_and_avg_of_values(dictionary):
+    result = defaultdict(list)
+    for key, values in dictionary.items():
+        values = [int(i) for i in values]
+        median = statistics.median(values)
+        avg = statistics.mean(values)
+        result[key].append(median)
+        result[key].append(avg)
+
+    return result
+
+
+DATA = collections.OrderedDict(sorted(dict_with_median_and_avg_of_values(get_car_data()).items()))
+
+workbook = openpyxl.load_workbook('data.xlsx')
+if not workbook['skoda_octavia']:
+    workbook.create_sheet('skoda_octavia')
+print(workbook.active)
+sheet = workbook['skoda_octavia']
+print(workbook.sheetnames)
+
+i = 1  # no to to wez popraw gosciu
+for key, value in DATA.items():
+    sheet.append([key, *value])
+    # sheet['B' + str(i)] = int(el)
+    # sheet['C' + str(i)] = DATA[el]
+    # i += 1
+
+chart = BarChart()
+chart.type = "col"
+chart.y_axis.title = 'Mileage'
+chart.x_axis.title = 'Year of prod.'
+
+data = openpyxl.chart.Reference(sheet, min_col=2, max_col=3, min_row=1, max_row=len(DATA))
+cats = openpyxl.chart.Reference(sheet, min_col=1, min_row=1, max_row=len(DATA))
+
+chart.add_data(data)
+chart.set_categories(cats)
+sheet.add_chart(chart, "E2")
+
+workbook.save('data.xlsx')
+
+# plt.rcParams.update({'font.size': 7})
+# plt.bar(DATA.keys(), dict_with_avg_of_values(DATA).values(), color='g')
+# plt.show()
