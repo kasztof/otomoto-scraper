@@ -1,4 +1,6 @@
 import tkinter as tk
+from tkinter import filedialog
+
 from main import get_data_from_pages
 
 master = tk.Tk()
@@ -12,10 +14,19 @@ def delete_default_text(event):
     event.widget.delete(0, "end")
 
 
-def get_data(event):
+def browse_button():
+    filename = filedialog.askdirectory()
+    print(filename)
+    return filename
+
+
+def get_data():
+    mark = car_mark.get()
+    model = car_model.get()
     first = int(first_page.get())
     last = int(last_page.get())
-    get_data_from_pages(first, last)
+    path = browse_button()
+    get_data_from_pages(path, mark, model, first, last)
 
 first_page = tk.Entry(master)
 last_page = tk.Entry(master)
@@ -24,11 +35,18 @@ last_page.insert(0, 'end page')
 first_page.bind("<Button-1>", delete_default_text)
 last_page.bind("<Button-1>", delete_default_text)
 
-get_data_button = tk.Button(master)
-get_data_button['text'] = 'Get data'
-get_data_button.bind("<Button-1>", get_data)
-get_data_button.pack(side='bottom')
-# tk.Button(master, text="Get data", command=get_data).pack(side="bottom")
+car_mark = tk.Entry(master)
+car_model = tk.Entry(master)
+car_mark.insert(0, 'mark')
+car_model.insert(0, 'model')
+car_mark.bind("<Button-1>", delete_default_text)
+car_model.bind("<Button-1>", delete_default_text)
+
+tk.Button(master, text="Get data", command=get_data).pack(side="bottom")
+# tk.Button(master, text="Choose directory for xlsx file...", command=browse_button).pack(side="bottom")
+
+car_mark.pack(side="top")
+car_model.pack(side="top")
 
 first_page.pack(side="left")
 last_page.pack(side="right")
