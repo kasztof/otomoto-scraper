@@ -1,13 +1,12 @@
 import tkinter as tk
 from tkinter import filedialog
+from tkinter import messagebox
+from tkinter.ttk import Progressbar
 
-from main import get_data_from_pages
+from main import get_mileages_and_years, get_car_url, merge_list_of_dictionaries, save_to_excel
 
 master = tk.Tk()
-
-
-def say_hi():
-    print("hi there, everyone!")
+PROGRESS_BAR_LENGTH = 300
 
 
 def delete_default_text(event):
@@ -16,8 +15,21 @@ def delete_default_text(event):
 
 def browse_button():
     filename = filedialog.askdirectory()
-    print(filename)
     return filename
+
+
+def get_data_from_pages(path, mark, model, start_page, end_page):
+    list_of_pages = []
+    one_step = 100 / (end_page - start_page + 1)
+    for page_number in range(start_page, end_page + 1):
+        list_of_pages.append(get_mileages_and_years(get_car_url(mark, model) + str(page_number)))
+        progress['value'] += one_step
+        master.update_idletasks()
+
+    data_set = merge_list_of_dictionaries(list_of_pages)
+    save_to_excel(path, data_set, mark, model, end_page-start_page+1)
+    progress['value'] = 0
+    return data_set
 
 
 def get_data():
@@ -25,8 +37,11 @@ def get_data():
     model = car_model.get()
     first = int(first_page.get())
     last = int(last_page.get())
+    progress.pack(side="bottom")
     path = browse_button()
     get_data_from_pages(path, mark, model, first, last)
+    messagebox.showinfo("Info", "Data download and saved in specified location.")
+
 
 first_page = tk.Entry(master)
 last_page = tk.Entry(master)
@@ -41,6 +56,8 @@ car_mark.insert(0, 'mark')
 car_model.insert(0, 'model')
 car_mark.bind("<Button-1>", delete_default_text)
 car_model.bind("<Button-1>", delete_default_text)
+
+progress = Progressbar(master, orient=tk.HORIZONTAL, length=PROGRESS_BAR_LENGTH)
 
 tk.Button(master, text="Get data", command=get_data).pack(side="bottom")
 # tk.Button(master, text="Choose directory for xlsx file...", command=browse_button).pack(side="bottom")

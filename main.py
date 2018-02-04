@@ -69,17 +69,6 @@ def get_number(string):
     return int(result)
 
 
-def get_data_from_pages(path, mark, model, start_page, end_page):
-    list_of_pages = []
-    for page_number in range(start_page, end_page + 1):
-        print(page_number)
-        list_of_pages.append(get_mileages_and_years(get_car_url(mark, model) + str(page_number)))
-
-    data_set = merge_list_of_dictionaries(list_of_pages)
-    save_to_excel(path, data_set, mark, model)
-    return data_set
-
-
 def dict_with_avg_of_values(dictionary):
     result = {}
     for key, val in dictionary.items():
@@ -109,7 +98,7 @@ def dict_with_median_and_avg_of_values(dictionary):
     return result
 
 
-def save_to_excel(path, data, mark, model):
+def save_to_excel(path, data, mark, model, sum_of_pages):
     to_save = collections.OrderedDict(sorted(dict_with_median_and_avg_of_values(data).items()))
     if os.path.exists(path + '/data.xlsx'):
         workbook = openpyxl.load_workbook(path + '/data.xlsx')
@@ -118,15 +107,13 @@ def save_to_excel(path, data, mark, model):
         wb.close()
         workbook = openpyxl.load_workbook(path + '/data.xlsx')
 
-    print(mark + "_" + model)
-    print(workbook.sheetnames)
-
     if (mark + '_' + model) not in workbook.sheetnames:
         workbook.create_sheet(mark + '_' + model)
         sheet = workbook[mark + '_' + model]
     else:
         sheet = workbook[mark + '_' + model]
 
+    sheet['D1'] = 'data gathered from: ' + str(sum_of_pages) + ' pages'
     sheet['B1'] = 'median'
     sheet['C1'] = 'average'
 
@@ -134,6 +121,7 @@ def save_to_excel(path, data, mark, model):
         sheet.append([key, *value])
 
     chart = BarChart()
+    chart.title = mark + " " + model
     chart.type = "col"
     chart.y_axis.title = 'Mileage'
     chart.x_axis.title = 'Year of prod.'
@@ -143,6 +131,6 @@ def save_to_excel(path, data, mark, model):
 
     chart.add_data(data, titles_from_data=True)
     chart.set_categories(cats)
-    sheet.add_chart(chart, "E2")
+    sheet.add_chart(chart, "E3")
 
     workbook.save(path + '/data.xlsx')
