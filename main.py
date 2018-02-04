@@ -1,15 +1,21 @@
+import os
 from collections import defaultdict
 from urllib.request import urlopen
 import statistics
 
 import collections
+
+import xlsxwriter as xlsxwriter
 from bs4 import BeautifulSoup
-import matplotlib.pyplot as plt
 import openpyxl
 from openpyxl.chart import BarChart
 
-CARS = 'https://www.otomoto.pl/osobowe/skoda/octavia/?page='
+# CARS = 'https://www.otomoto.pl/osobowe/skoda/octavia/?page='
 MAXIMUM_MILEAGE = 2000000
+
+
+def get_car_url(mark, model):
+    return 'https://www.otomoto.pl/osobowe/' + mark + '/' + model + '/?page='
 
 
 def merge_dictionaries(dict1, dict2):
@@ -63,21 +69,20 @@ def get_number(string):
     return int(result)
 
 
-def get_data_from_pages(start_page, end_page):
+def get_data_from_pages(path, mark, model, start_page, end_page):
     list_of_pages = []
-    for page_number in range(start_page, end_page):
+    for page_number in range(start_page, end_page + 1):
         print(page_number)
-        list_of_pages.append(get_mileages_and_years(CARS + str(page_number)))
+        list_of_pages.append(get_mileages_and_years(get_car_url(mark, model) + str(page_number)))
 
     data_set = merge_list_of_dictionaries(list_of_pages)
-    save_to_excel(data_set)
+    save_to_excel(path, data_set, mark, model)
     return data_set
 
 
 def dict_with_avg_of_values(dictionary):
     result = {}
     for key, val in dictionary.items():
-        # val = [int(i) for i in val]
         avg = statistics.mean(val)
         result[key] = avg
 
@@ -87,7 +92,6 @@ def dict_with_avg_of_values(dictionary):
 def dict_with_median_of_values(dictionary):
     result = {}
     for key, val in dictionary.items():
-        # val = [int(i) for i in val]
         median = statistics.median(val)
         result[key] = median
 
@@ -97,7 +101,6 @@ def dict_with_median_of_values(dictionary):
 def dict_with_median_and_avg_of_values(dictionary):
     result = defaultdict(list)
     for key, val in dictionary.items():
-        # val = [int(i) for i in val]
         median = statistics.median(val)
         avg = statistics.mean(val)
         result[key].append(median)
@@ -106,21 +109,29 @@ def dict_with_median_and_avg_of_values(dictionary):
     return result
 
 
-def save_to_excel(data):
+def save_to_excel(path, data, mark, model):
     to_save = collections.OrderedDict(sorted(dict_with_median_and_avg_of_values(data).items()))
-    workbook = openpyxl.load_workbook('data.xlsx')
-    if not workbook['skoda_octavia']:
-        workbook.create_sheet('skoda_octavia')
-    print(workbook.active)
-    sheet = workbook['skoda_octavia']
+    if os.path.exists(path + '/data.xlsx'):
+        workbook = openpyxl.load_workbook(path + '/data.xlsx')
+    else:
+        wb = xlsxwriter.Workbook(path + '/data.xlsx')
+        wb.close()
+        workbook = openpyxl.load_workbook(path + '/data.xlsx')
+
+    print(mark + "_" + model)
     print(workbook.sheetnames)
 
-    i = 1  # no to to wez popraw gosciu
+    if (mark + '_' + model) not in workbook.sheetnames:
+        workbook.create_sheet(mark + '_' + model)
+        sheet = workbook[mark + '_' + model]
+    else:
+        sheet = workbook[mark + '_' + model]
+
+    sheet['B1'] = 'median'
+    sheet['C1'] = 'average'
+
     for key, value in to_save.items():
         sheet.append([key, *value])
-        # sheet['B' + str(i)] = int(el)
-        # sheet['C' + str(i)] = DATA[el]
-        # i += 1
 
     chart = BarChart()
     chart.type = "col"
@@ -130,43 +141,8 @@ def save_to_excel(data):
     data = openpyxl.chart.Reference(sheet, min_col=2, max_col=3, min_row=1, max_row=len(to_save))
     cats = openpyxl.chart.Reference(sheet, min_col=1, min_row=1, max_row=len(to_save))
 
-    chart.add_data(data)
+    chart.add_data(data, titles_from_data=True)
     chart.set_categories(cats)
     sheet.add_chart(chart, "E2")
 
-    workbook.save('data.xlsx')
-
-
-#DATA = collections.OrderedDict(sorted(dict_with_median_and_avg_of_values(get_data_from_pages(2, 3)).items()))
-#
-# workbook = openpyxl.load_workbook('data.xlsx')
-# if not workbook['skoda_octavia']:
-#     workbook.create_sheet('skoda_octavia')
-# print(workbook.active)
-# sheet = workbook['skoda_octavia']
-# print(workbook.sheetnames)
-#
-# i = 1  # no to to wez popraw gosciu
-# for key, value in DATA.items():
-#     sheet.append([key, *value])
-#     # sheet['B' + str(i)] = int(el)
-#     # sheet['C' + str(i)] = DATA[el]
-#     # i += 1
-#
-# chart = BarChart()
-# chart.type = "col"
-# chart.y_axis.title = 'Mileage'
-# chart.x_axis.title = 'Year of prod.'
-#
-# data = openpyxl.chart.Reference(sheet, min_col=2, max_col=3, min_row=1, max_row=len(DATA))
-# cats = openpyxl.chart.Reference(sheet, min_col=1, min_row=1, max_row=len(DATA))
-#
-# chart.add_data(data)
-# chart.set_categories(cats)
-# sheet.add_chart(chart, "E2")
-#
-# workbook.save('data.xlsx')
-
-# plt.rcParams.update({'font.size': 7})
-# plt.bar(DATA.keys(), dict_with_avg_of_values(DATA).values(), color='g')
-# plt.show()
+    workbook.save(path + '/data.xlsx')
