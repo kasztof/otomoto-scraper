@@ -3,10 +3,11 @@ from tkinter import filedialog
 from tkinter import messagebox
 from tkinter.ttk import Progressbar
 
-from main import get_mileages_and_years, get_car_url, merge_list_of_dictionaries, save_to_excel
+from main import get_mileages_and_years, get_car_url, merge_list_of_dictionaries, save_to_xlsx
 
-master = tk.Tk()
+MASTER = tk.Tk()
 PROGRESS_BAR_LENGTH = 300
+PROGRESS_BAR_STEPS = 100
 
 
 def delete_default_text(event):
@@ -20,14 +21,14 @@ def browse_button():
 
 def get_data_from_pages(path, mark, model, start_page, end_page):
     list_of_pages = []
-    one_step = 100 / (end_page - start_page + 1)
+    one_step = PROGRESS_BAR_STEPS / (end_page - start_page + 1)
     for page_number in range(start_page, end_page + 1):
         list_of_pages.append(get_mileages_and_years(get_car_url(mark, model) + str(page_number)))
         progress['value'] += one_step
-        master.update_idletasks()
+        MASTER.update_idletasks()
 
     data_set = merge_list_of_dictionaries(list_of_pages)
-    save_to_excel(path, data_set, mark, model, end_page-start_page+1)
+    save_to_xlsx(path, data_set, mark, model, end_page - start_page + 1)
     progress['value'] = 0
     return data_set
 
@@ -43,24 +44,23 @@ def get_data():
     messagebox.showinfo("Info", "Data download and saved in specified location.")
 
 
-first_page = tk.Entry(master)
-last_page = tk.Entry(master)
+first_page = tk.Entry(MASTER)
+last_page = tk.Entry(MASTER)
 first_page.insert(0, 'start page')
 last_page.insert(0, 'end page')
 first_page.bind("<Button-1>", delete_default_text)
 last_page.bind("<Button-1>", delete_default_text)
 
-car_mark = tk.Entry(master)
-car_model = tk.Entry(master)
+car_mark = tk.Entry(MASTER)
+car_model = tk.Entry(MASTER)
 car_mark.insert(0, 'mark')
 car_model.insert(0, 'model')
 car_mark.bind("<Button-1>", delete_default_text)
 car_model.bind("<Button-1>", delete_default_text)
 
-progress = Progressbar(master, orient=tk.HORIZONTAL, length=PROGRESS_BAR_LENGTH)
+progress = Progressbar(MASTER, orient=tk.HORIZONTAL, length=PROGRESS_BAR_LENGTH)
 
-tk.Button(master, text="Get data", command=get_data).pack(side="bottom")
-# tk.Button(master, text="Choose directory for xlsx file...", command=browse_button).pack(side="bottom")
+tk.Button(MASTER, text="Get data", command=get_data).pack(side="bottom")
 
 car_mark.pack(side="top")
 car_model.pack(side="top")
@@ -69,4 +69,4 @@ first_page.pack(side="left")
 last_page.pack(side="right")
 
 
-master.mainloop()
+MASTER.mainloop()
