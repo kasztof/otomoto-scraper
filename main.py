@@ -43,15 +43,22 @@ def merge_list_of_dictionaries(dict_list):
     return dict_list[0]
 
 
+def get_max_page_number(url):
+    page = urlopen(url + '1')  # we are adding '1' because the url pattern ends on /?page=
+    soup = BeautifulSoup(page, "lxml")
+    pages = soup.find_all(attrs={"class": "page"})
+    max_page = pages[-2].string  # [-2] because the last element with class 'page' is Next page
+    #  so we have to pick the one before
+    return max_page
+
+
 def get_mileages_and_years(url):
     """Returns dict with year:mileage pairs from given url"""
     page = urlopen(url)
     soup = BeautifulSoup(page, "lxml")
     mileages = soup.find_all(attrs={"data-code": "mileage"})
     years = soup.find_all(attrs={"data-code": "year"})
-    pages = soup.find_all(attrs={"class": "page"})
-    max_page = pages[-2].string  # [-2] because the last element with class 'page' is Next page
-    #  so we have to pick the one before
+
     result_dict = defaultdict(list)
 
     for yrs, mlg in list(zip(years, mileages)):
@@ -71,7 +78,7 @@ def get_number(string):
     return int(result)
 
 
-def dict_with_median_and_avg_of_values(dictionary):
+def dict_with_median_and_average_values(dictionary):
     """Takes dictionary with pairs of year:[list of mileages]
      and return a dict with pairs year:[median of mileages, avg of mileages]"""
     result = defaultdict(list)
@@ -88,7 +95,7 @@ def init_xlsx(path):
     if os.path.exists(path + '/data.xlsx'):
         workbook = openpyxl.load_workbook(path + '/data.xlsx')
     else:
-        wb = xlsxwriter.Workbook(path + '/data.xlsx')  # if xlsx doesnt exits create it and then open with openpyxl
+        wb = xlsxwriter.Workbook(path + '/data.xlsx')  # if xlsx doesnt exits create it and open with openpyxl
         wb.close()
         workbook = openpyxl.load_workbook(path + '/data.xlsx')
     return workbook
@@ -127,7 +134,7 @@ def add_charts(sheet, mark, model, data, cats):
 
 def save_to_xlsx(path, data, mark, model, sum_of_pages):
     data_to_save = collections.OrderedDict(
-        sorted(dict_with_median_and_avg_of_values(data).items()))  # sort dict by years
+        sorted(dict_with_median_and_average_values(data).items()))  # sort dict by years
 
     workbook = init_xlsx(path)
     sheet = init_car_sheet(workbook, mark, model, sum_of_pages, data_to_save)
